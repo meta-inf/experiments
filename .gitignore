@@ -1,0 +1,5 @@
+run/
+*.sw*
+.vscode/*
+*.egg-info/
+**/__pycache__/
