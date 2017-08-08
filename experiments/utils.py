@@ -23,28 +23,26 @@ def preflight(args, data_dump=None):
     Routine checks, backup parameters 
     '''
     def get_output(cmd):
-        cp = subprocess.run(
-            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        cp.stdout = cp.stdout.decode('utf-8')
-        cp.stderr = cp.stderr.decode('utf-8')
-        return cp
+        cp = subprocess.check_output(
+            cmd, shell=True, stderr=subprocess.PIPE)
+        return cp.decode('utf-8')
 
     # Get git info    
     if args.production:
         # Please keep working directory clean
         try:
-            out = get_output('git status').stdout
+            out = get_output('git status')
         except subprocess.CalledProcessError as e:
             raise Exception('Git check failed: {}'.format(str(e)))
         if str(out).find('working directory clean') == -1:
             raise Exception('Working directory not clean.')
         # Get commit hash
-        commit_hash = get_output('git rev-parse HEAD').stdout.rstrip()
+        commit_hash = get_output('git rev-parse HEAD').rstrip()
     else:
         # Get commit and modifications if possible
         try:
-            diff_to_head = get_output('git diff HEAD').stdout
-            commit_hash = get_output('git rev-parse HEAD').stdout.rstrip()
+            diff_to_head = get_output('git diff HEAD')
+            commit_hash = get_output('git rev-parse HEAD').rstrip()
         except Exception as e:
             print('Cannot get repo info:', e, file=sys.stderr)
             commit_hash = 'None'
