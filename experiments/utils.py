@@ -52,12 +52,18 @@ def preflight(args, data_dump=None):
     #
     print('Commit: {}; production: {}'.format(commit_hash[:8], args.production))
 
-    # Make logdir
-    if not args.resume and os.path.exists(args.dir):
-        if args.production:
-            raise Exception('Directory {} exists'.format(args.dir))
-        shutil.rmtree(args.dir)
-    os.makedirs(args.dir, exist_ok=True)
+    if not args.resume:
+        # Check if checkpoints exists. 
+        # As runner may creates args.dir in advance, check hps dump
+        if os.path.exists(os.path.join(args.dir, 'hps.txt')):
+            if args.production:
+                raise Exception('Directory {} exists'.format(args.dir))
+            else:
+                shutil.rmtree(args.dir)
+        os.makedirs(args.dir, exist_ok=True)
+    else:
+        # They must
+        assert os.path.exists(args.dir)
 
     # Dump hyperparameters and other stuff
     with open(os.path.join(args.dir, 'hps.txt'), 'w') as fout:
@@ -73,3 +79,4 @@ def preflight(args, data_dump=None):
     with open(os.path.join(args.dir, 'dat.bin'), 'wb') as fout:
         import pickle
         pickle.dump(data_dump, fout)
+
