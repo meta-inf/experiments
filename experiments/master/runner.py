@@ -15,9 +15,9 @@ Task = namedtuple('Task', 'cmd work_dir log_dir post_cmd group_id')
 Task.__doc__ = """\
 A task to run.
 :param str cmd: command to run, preferrably excluding output redirection
-:param str work_dir: optional, working directory. 
-:param str log_dir: optional, directory to dump stdout/stderr
-:param str post_cmd: optional, command to run if task succeeds
+:param str work_dir: working directory. 
+:param str log_dir: directory to dump stdout/stderr
+:param str post_cmd: command to run if task succeeds
 :param str group_id: experiment group the task belongs to
 """
 
@@ -36,9 +36,7 @@ def run_task(t: Task):
 
 
 class RunnerThread(threading.Thread):
-    '''
-    Each thread 
-    '''
+
     def __init__(self, env_str, runner):
         super(RunnerThread, self).__init__()
         self.env_setup = env_str
@@ -82,10 +80,6 @@ class RunnerThread(threading.Thread):
 
 
 class Runner:
-
-    """
-    A runner dispatches tasks to threads, and communicate with the client.
-    """
 
     def __init__(self, n_max_gpus, n_multiplex):
         self.que_todo = queue.Queue()
