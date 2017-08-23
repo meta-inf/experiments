@@ -1,3 +1,9 @@
+'''
+This script does grid search. 
+The runner module determines log dir names, spawns process in the most vacant 
+GPU, and saves stdout/stderr if you wish. All you need is to define the 
+hyperparam space.
+'''
 from experiments.master import runner
 import os
 import logging
