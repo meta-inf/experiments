@@ -131,14 +131,7 @@ class Runner:
             time.sleep(2)
 
 
-def list_tasks(root_cmd, spec_list, work_dir, log_dir,
-               post_cmd=None,
-               group_id=None):
-    '''
-    Helper function to generate task list
-    '''
-    if type(spec_list) == dict:
-        spec_list = list(spec_list.items())
+def _list_tasks(root_cmd, spec_list, work_dir, log_dir, post_cmd, group_id):
     if spec_list == []:
         return [Task(
             cmd=root_cmd + ' -dir={}'.format(log_dir), 
@@ -161,8 +154,22 @@ def list_tasks(root_cmd, spec_list, work_dir, log_dir,
         else:
             new_log_dir = log_dir
         # 
-        ret += list_tasks(
+        ret += _list_tasks(
                 root_cmd + ' -{}={}'.format(param, v), 
                 spec_list[1:], work_dir, new_log_dir, 
                 post_cmd, group_id)
     return ret
+
+
+def list_tasks(root_cmd, spec_list, work_dir, log_dir,
+        post_cmd=None,
+        group_id=None):
+    '''
+    Helper function to generate task list
+    '''
+    if type(spec_list) == dict:
+        spec_list = list(spec_list.items())
+    root_cmd += ' -production'    
+    return _list_tasks(
+            root_cmd, spec_list, work_dir, log_dir, post_cmd, group_id)
+
