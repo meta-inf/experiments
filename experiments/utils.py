@@ -50,6 +50,7 @@ def preflight(args, data_dump=None):
     #
     print('Commit: {}; production: {}'.format(commit_hash[:8], args.production))
 
+    args.dir = os.path.expanduser(args.dir)
     if not args.resume:
         # Check if checkpoints exists. 
         # As runner may creates args.dir in advance, check hps dump
