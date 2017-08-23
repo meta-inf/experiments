@@ -10,7 +10,7 @@ logging.basicConfig(
 slave_dir = os.path.dirname(os.path.abspath(__file__)) 
 param_specs = {'x': [0.5, 0.6, -0.3], 'y': ['foo', 'bar!']}
 tasks = runner.list_tasks(
-        'python3 slave.py',
+        'python3 slave.py -production',
         param_specs,
         slave_dir,
         '/tmp/slave_logs/prefix')

@@ -170,3 +170,19 @@ def safe_path_str(raw):
 
 def task_id(task):
     return hex(abs(hash(task.cmd) % int(1e10)))[2:]
+
+
+import threading
+
+
+class AtomicCounter:
+
+    def __init__(self, init=0):
+        self.value = init
+        self._lock = threading.Lock()
+
+    def inc(self):
+        with self._lock:
+            self.value += 1
+            return self.value
+

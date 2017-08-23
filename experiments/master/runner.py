@@ -5,13 +5,14 @@ import threading
 import time
 import re
 import subprocess
+import shutil
 from collections import namedtuple
 from enum import Enum
 
 from experiments.master import utils
 
 
-Task = namedtuple('Task', 'cmd work_dir log_dir post_cmd group_id')
+Task = namedtuple('Task', 'cmd work_dir log_dir post_cmd group_id ttl')
 Task.__doc__ = """\
 A task to run.
 :param str cmd: command to run, preferrably excluding output redirection
@@ -19,6 +20,7 @@ A task to run.
 :param str log_dir: directory to dump stdout/stderr
 :param str post_cmd: command to run if task succeeds
 :param str group_id: experiment group the task belongs to
+:param int ttl: restart counter
 """
 
 
@@ -67,21 +69,36 @@ class RunnerThread(threading.Thread):
                 ret = run_task(task)
             except (IOError, subprocess.SubprocessError) as e:
                 self.runner.logger.warn(
-                    'task error: {}, {}'.format(id_, str(e)))
+                    'error launching task: {}, {}'.format(id_, str(e)))
                 ret = -100
             if ret != 0:
                 self.runner.logger.info(
                     'task crashed: {}, {}'.format(id_, str(ret)))
+                if task.ttl > self.runner.max_ttl:
+                    self.runner.logger.info(
+                        'task {} reaches maximum ttl. abandoned'.format(id_))
+                    self.runner.finished_tasks.inc()
+                    continue
+                if task.log_dir and os.path.exists(task.log_dir):
+                    # Move it so next run doesn't automatically fail
+                    i = 0
+                    while os.path.exists(task.log_dir + str(i)):
+                        i += 1
+                    shutil.move(task.log_dir, task.log_dir + str(i))
+                task = task._replace(ttl=task.ttl+1)
                 self.runner.que_failed.put(task)
             else:
                 self.runner.logger.info('task completed: {}'.format(id_))
                 self.runner.que_completed.put(task)
+                self.runner.finished_tasks.inc()
             self.runner.que_todo.task_done()
 
 
 class Runner:
 
-    def __init__(self, n_max_gpus, n_multiplex):
+    def __init__(self, n_max_gpus, n_multiplex, n_max_retry=3):
+        self.max_ttl = n_max_retry
+        self.finished_tasks = utils.AtomicCounter()
         self.que_todo = queue.Queue()
         self.que_failed = queue.Queue()
         self.que_completed = queue.Queue()
@@ -100,17 +117,18 @@ class Runner:
         for t in tasks:
             self.que_todo.put(t)
         while True:
-            if self.que_completed.qsize() + self.que_failed.qsize() >= n_tasks:
-                if self.que_failed.empty():
-                    self.logger.info('All tasks succeeded. Exiting')
-                    for th in self.threads:
-                        th.stop()
-                    return
+            if self.finished_tasks.value >= n_tasks:
+                self.logger.info('All tasks succeeded. Exiting')
+                for th in self.threads:
+                    th.stop()
+                return
+            elif self.que_todo.empty(): 
                 self.logger.info('Restarting the following tasks: ')
                 while not self.que_failed.empty():
                     t = self.que_failed.get()
-                    self.logger.info('> ' + t.cmd)
+                    self.logger.info('- ' + t.cmd)
                     self.que_todo.put(t)
+            time.sleep(2)
 
 
 def list_tasks(root_cmd, spec_list, work_dir, log_dir,
@@ -125,7 +143,7 @@ def list_tasks(root_cmd, spec_list, work_dir, log_dir,
         return [Task(
             cmd=root_cmd + ' -dir={}'.format(log_dir), 
             work_dir=work_dir, log_dir=log_dir, 
-            post_cmd=post_cmd, group_id=group_id)]
+            post_cmd=post_cmd, group_id=group_id, ttl=0)]
     param, values = spec_list[0]
     ret = []
     used_names = set()
