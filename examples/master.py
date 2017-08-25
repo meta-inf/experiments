@@ -14,12 +14,15 @@ logging.basicConfig(
         format='%(filename)s:%(lineno)s %(levelname)s:%(message)s')
 
 slave_dir = os.path.dirname(os.path.abspath(__file__)) 
-param_specs = {'x': [0.5, 0.6, -0.3], 'y': ['foo', 'bar!']}
+param_specs = {
+    ('x', 'x1'): [0.5, 0.6, -0.3],  # x and x1 will have same value
+    'y': ['foo', 'bar!']
+}
 tasks = runner.list_tasks(
-        'python3 slave.py',
-        param_specs,
-        slave_dir,
-        '/tmp/slave_logs/prefix')
+    'python3 slave.py',
+    param_specs,
+    slave_dir,
+    '/tmp/slave_logs/prefix')
 
 
 r = runner.Runner(n_max_gpus=1, n_multiplex=4)

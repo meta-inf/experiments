@@ -19,6 +19,7 @@ utils.parser returns an argparse.ArgumentParser, with the following fields set:
 '''
 parser = utils.parser('script_name')
 parser.add_argument('-x', default=0.5, type=float)
+parser.add_argument('-x1', default=0.5, type=float)
 parser.add_argument('-y', default='bla', type=str)
 
 
@@ -30,6 +31,7 @@ if __name__ == '__main__':
     and does cleaning and sanity check
     '''
     utils.preflight(args, data_dump=None)
+    assert abs(args.x - args.x1) < 1e-3
     # Proceed to your experiment
     if args.x < 0:
         raise Exception('Hey! Don\'t do that!')

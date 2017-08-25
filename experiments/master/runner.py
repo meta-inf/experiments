@@ -138,12 +138,17 @@ def _list_tasks(root_cmd, spec_list, work_dir, log_dir, post_cmd, group_id):
             work_dir=work_dir, log_dir=log_dir, 
             post_cmd=post_cmd, group_id=group_id, ttl=0)]
     param, values = spec_list[0]
+    if type(param) == str:
+        param = [param]
+    else:
+        assert type(param) == tuple
+        param = list(param)
     ret = []
     used_names = set()
     for v in values:
         # Rename the logdir
         if len(values) > 1:
-            new_name = utils.safe_path_str('{}_{}'.format(param[:2], v))
+            new_name = utils.safe_path_str('{}_{}'.format(param[0][:2], v))
             if new_name in used_names:
                 new_name += '_'; i = 0
                 while new_name + str(i) in used_names:
@@ -154,8 +159,13 @@ def _list_tasks(root_cmd, spec_list, work_dir, log_dir, post_cmd, group_id):
         else:
             new_log_dir = log_dir
         # 
+        new_args = ''
+        if type(v) != list:
+            v = [v] * len(param)
+        for p, v in zip(param, v):
+            new_args += ' -{}={}'.format(p, v)
         ret += _list_tasks(
-                root_cmd + ' -{}={}'.format(param, v), 
+                root_cmd + new_args,
                 spec_list[1:], work_dir, new_log_dir, 
                 post_cmd, group_id)
     return ret
