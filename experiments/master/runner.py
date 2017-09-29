@@ -145,10 +145,20 @@ def _list_tasks(root_cmd, spec_list, work_dir, log_dir, post_cmd, group_id):
         param = list(param)
     ret = []
     used_names = set()
-    for v in values:
-        # Rename the logdir
+    for cval in values:
+        # current spec: 'param[i]=cval[i]' for i in len(param)
+        # when cval is atomic, it means all param in this item share the same 
+        # value
+        if type(cval) != list:
+            cval = [cval] * len(param)
+        else:
+            assert len(cval) == len(param)
+        # Rename the logdir: add -param[i]_cval[i] to the suffix
         if len(values) > 1:
-            new_name = utils.safe_path_str('{}_{}'.format(param[0][:2], v))
+            new_name = '-'.join(
+                [utils.safe_path_str('{}_{}'.format(p_[:2], v_))
+                 for p_, v_ in zip(param, cval)]
+            )
             if new_name in used_names:
                 new_name += '_'; i = 0
                 while new_name + str(i) in used_names:
@@ -158,12 +168,10 @@ def _list_tasks(root_cmd, spec_list, work_dir, log_dir, post_cmd, group_id):
             new_log_dir = log_dir + '_' + new_name
         else:
             new_log_dir = log_dir
-        # 
+        # Arg string
         new_args = ''
-        if type(v) != list:
-            v = [v] * len(param)
-        for p, v in zip(param, v):
-            new_args += ' -{}={}'.format(p, v)
+        for p_, v_ in zip(param, cval):
+            new_args += ' -{}={}'.format(p_, v_)
         ret += _list_tasks(
                 root_cmd + new_args,
                 spec_list[1:], work_dir, new_log_dir, 
