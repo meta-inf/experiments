@@ -62,11 +62,12 @@ class RunnerThread(threading.Thread):
                 continue
             # Run
             try:
-                task = task._replace(cmd=self.env_setup + '  ' + task.cmd)
-                id_ = utils.task_id(task)
+                # Don't mess up default cmd string
+                task_ = task._replace(cmd=self.env_setup + '  ' + task.cmd)
+                id_ = utils.task_id(task_)
                 self.runner.logger.info(
-                    'Launching task {}: {}\t'.format(id_, task.cmd))
-                ret = run_task(task)
+                    'Launching task {}: {}\t'.format(id_, task_.cmd))
+                ret = run_task(task_)
             except (IOError, subprocess.SubprocessError) as e:
                 self.runner.logger.warn(
                     'error launching task: {}, {}'.format(id_, str(e)))
