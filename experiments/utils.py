@@ -67,7 +67,8 @@ def preflight(args, data_dump=None, create_logdir=True):
                 raise Exception('Directory {} exists'.format(args.dir))
             else:
                 shutil.rmtree(args.dir)
-        os.makedirs(args.dir, exist_ok=True)
+        if not os.path.exists(args.dir):
+            os.makedirs(args.dir)
     else:
         # They must
         assert os.path.exists(args.dir)
