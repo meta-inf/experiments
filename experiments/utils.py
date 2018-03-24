@@ -25,9 +25,10 @@ def source_dir():
     return os.path.dirname(path)
 
 
-def preflight(args, data_dump=None, rng_seed=None):
+def preflight(args, data_dump=None, create_logdir=True):
     '''
     Routine checks, backup parameters 
+    :param create_logdir: whether this worker should create args.dir
     '''
     def get_output(cmd):
         cp = subprocess.check_output(
@@ -58,7 +59,7 @@ def preflight(args, data_dump=None, rng_seed=None):
     print('Commit: {}; production: {}'.format(commit_hash[:8], args.production))
 
     args.dir = os.path.expanduser(args.dir)
-    if not args.resume:
+    if create_logdir and not args.resume:
         # Check if checkpoints exists. 
         # As runner may creates args.dir in advance, check hps dump
         if os.path.exists(os.path.join(args.dir, 'hps.txt')):
