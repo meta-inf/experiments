@@ -1,8 +1,10 @@
+from __future__ import print_function
 import os
 import sys
 import shutil
 import argparse
 import subprocess
+import inspect
 
 
 def parser(file_name):
@@ -18,7 +20,12 @@ def parser(file_name):
     return parser
 
 
-def preflight(args, data_dump=None):
+def source_dir():
+    path = os.path.abspath(inspect.getmodule(inspect.stack()[1][0]).__file__)
+    return os.path.dirname(path)
+
+
+def preflight(args, data_dump=None, rng_seed=None):
     '''
     Routine checks, backup parameters 
     '''
@@ -78,4 +85,13 @@ def preflight(args, data_dump=None):
     with open(os.path.join(args.dir, 'dat.bin'), 'wb') as fout:
         import pickle
         pickle.dump(data_dump, fout)
+
+    # Fix rng seed
+    if rng_seed is not None:
+        import tensorflow as tf
+        import numpy as np
+        import random
+        np.random.seed(rng_seed)
+        random.seed(rng_seed)
+        tf.set_random_seed(rng_seed)
 
