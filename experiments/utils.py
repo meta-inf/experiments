@@ -42,8 +42,8 @@ def preflight(args, data_dump=None, create_logdir=True):
             out = get_output('git status')
         except subprocess.CalledProcessError as e:
             raise Exception('Git check failed: {}'.format(str(e)))
-        if str(out).find('working directory clean') == -1:
-            raise Exception('Working directory not clean.')
+        # if str(out).find('working directory clean') == -1:
+        #     raise Exception('Working directory not clean.')
         # Get commit hash
         commit_hash = get_output('git rev-parse HEAD').rstrip()
     else:
