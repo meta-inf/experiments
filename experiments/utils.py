@@ -87,13 +87,3 @@ def preflight(args, data_dump=None, create_logdir=True):
     with open(os.path.join(args.dir, 'dat.bin'), 'wb') as fout:
         import pickle
         pickle.dump(data_dump, fout)
-
-    # Fix rng seed
-    if rng_seed is not None:
-        import tensorflow as tf
-        import numpy as np
-        import random
-        np.random.seed(rng_seed)
-        random.seed(rng_seed)
-        tf.set_random_seed(rng_seed)
-
