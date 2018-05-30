@@ -61,6 +61,7 @@ class RunnerThread(threading.Thread):
                 time.sleep(2)
                 continue
             # Run
+            task_raw = task
             try:
                 task = task._replace(cmd=self.env_setup + '  ' + task.cmd)
                 id_ = utils.task_id(task)
@@ -71,11 +72,12 @@ class RunnerThread(threading.Thread):
                 self.runner.logger.warn(
                     'error launching task: {}, {}'.format(id_, str(e)))
                 ret = -100
+            task = task_raw
             if ret != 0:
-                self.runner.logger.info(
+                self.runner.logger.warning(
                     'task crashed: {}, {}'.format(id_, str(ret)))
                 if task.ttl > self.runner.max_ttl:
-                    self.runner.logger.info(
+                    self.runner.logger.warning(
                         'task {} reaches maximum ttl. abandoned'.format(id_))
                     self.runner.finished_tasks.inc()
                     continue
@@ -94,17 +96,32 @@ class RunnerThread(threading.Thread):
             self.runner.que_todo.task_done()
 
 
+def get_logger():
+    logger = logging.getLogger()
+    logging.addLevelName(
+        logging.INFO,
+        "\033[1;34m%s\033[1;0m" % logging.getLevelName(logging.INFO))
+    logging.addLevelName(
+        logging.WARNING,
+        "\033[1;31m%s\033[1;0m" % logging.getLevelName(logging.WARNING))
+    logging.addLevelName(
+        logging.ERROR,
+        "\033[1;41m%s\033[1;0m" % logging.getLevelName(logging.ERROR))
+    return logger
+
+
 class Runner:
 
-    def __init__(self, n_max_gpus, n_multiplex, n_max_retry=3):
+    def __init__(self, n_max_gpus, n_multiplex, n_max_retry=3,
+                 log_level=logging.INFO):
         self.max_ttl = n_max_retry
         self.finished_tasks = utils.AtomicCounter()
         self.que_todo = queue.Queue()
         self.que_failed = queue.Queue()
         self.que_completed = queue.Queue()
         self.gpus = utils.get_devices(n_max_gpus) * n_multiplex
-        self.logger = logging.getLogger()
-        self.logger.setLevel(logging.DEBUG)
+        self.logger = get_logger()
+        self.logger.setLevel(log_level)
         self.threads = []
         for g in self.gpus:
             env_str = 'CUDA_VISIBLE_DEVICES={}'.format(g)
@@ -118,7 +135,7 @@ class Runner:
             self.que_todo.put(t)
         while True:
             if self.finished_tasks.value >= n_tasks:
-                self.logger.info('All tasks succeeded. Exiting')
+                self.logger.info('All tasks finished. Exiting')
                 for th in self.threads:
                     th.stop()
                 return

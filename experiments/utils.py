@@ -35,26 +35,13 @@ def preflight(args, data_dump=None, create_logdir=True):
             cmd, shell=True, stderr=subprocess.PIPE)
         return cp.decode('utf-8')
 
-    # Get git info    
-    if args.production:
-        # Please keep working directory clean
-        try:
-            out = get_output('git status')
-        except subprocess.CalledProcessError as e:
-            raise Exception('Git check failed: {}'.format(str(e)))
-        # if str(out).find('working directory clean') == -1:
-        #     raise Exception('Working directory not clean.')
-        # Get commit hash
+    # Get git commit hash, and modification since HEAD
+    try:
+        diff_to_head = get_output('git diff HEAD')
         commit_hash = get_output('git rev-parse HEAD').rstrip()
-    else:
-        # Get commit and modifications if possible
-        try:
-            diff_to_head = get_output('git diff HEAD')
-            commit_hash = get_output('git rev-parse HEAD').rstrip()
-        except Exception as e:
-            print('Cannot get repo info:', e, file=sys.stderr)
-            commit_hash = 'None'
-            diff_to_head = str(e)
+    except subprocess.CalledProcessError as e:
+        if args.production:
+            raise Exception('Git check failed: {}'.format(str(e)))
     #
     print('Commit: {}; production: {}'.format(commit_hash[:8], args.production))
 
@@ -80,9 +67,8 @@ def preflight(args, data_dump=None, create_logdir=True):
         dct['commit_hash'] = commit_hash
         print(json.dumps(dct), file=fout)
 
-    if not args.production:
-        with open(os.path.join(args.dir, 'repo-diff.txt'), 'w') as fout:
-            print(diff_to_head, file=fout)
+    with open(os.path.join(args.dir, 'repo-diff.txt'), 'w') as fout:
+        print(diff_to_head, file=fout)
 
     with open(os.path.join(args.dir, 'dat.bin'), 'wb') as fout:
         import pickle
