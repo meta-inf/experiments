@@ -1,7 +1,7 @@
 Experiments
 ==================
 
-Boilerplate for painless reproducible alchemy.
+Boilerplates.
 
 Check the examples for a guide.
 
