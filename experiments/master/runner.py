@@ -12,7 +12,7 @@ from enum import Enum
 from experiments.master import utils
 
 
-Task = namedtuple('Task', 'cmd work_dir log_dir post_cmd group_id ttl')
+Task = namedtuple('Task', 'cmd option_dict work_dir log_dir post_cmd group_id ttl')
 Task.__doc__ = """\
 A task to run.
 :param str cmd: command to run, preferrably excluding output redirection
@@ -35,6 +35,12 @@ def run_task(t: Task):
     proc.wait()
     fout.close(); ferr.close()
     return proc.returncode
+
+
+class Status:
+    SUCCEED = 0
+    CRASHED = 1
+    LAUNCH_FAILED = -1000
 
 
 class RunnerThread(threading.Thread):
@@ -71,26 +77,28 @@ class RunnerThread(threading.Thread):
             except (IOError, subprocess.SubprocessError) as e:
                 self.runner.logger.warn(
                     'error launching task: {}, {}'.format(id_, str(e)))
-                ret = -100
+                ret = -Status.LAUNCH_FAILED
             task = task_raw
             if ret != 0:
                 self.runner.logger.warning(
                     'task crashed: {}, {}'.format(id_, str(ret)))
+                self.runner.on_task_finish(Status.CRASHED, task, code=ret)
                 if task.ttl > self.runner.max_ttl:
                     self.runner.logger.warning(
                         'task {} reaches maximum ttl. abandoned'.format(id_))
                     self.runner.finished_tasks.inc()
-                    continue
-                if task.log_dir and os.path.exists(task.log_dir):
-                    # Move it so next run doesn't automatically fail
-                    i = 0
-                    while os.path.exists(task.log_dir + str(i)):
-                        i += 1
-                    shutil.move(task.log_dir, task.log_dir + str(i))
-                task = task._replace(ttl=task.ttl+1)
-                self.runner.que_failed.put(task)
+                else:
+                    if task.log_dir and os.path.exists(task.log_dir):
+                        # Move it so next run doesn't automatically fail
+                        i = 0
+                        while os.path.exists(task.log_dir + str(i)):
+                            i += 1
+                        shutil.move(task.log_dir, task.log_dir + str(i))
+                    task = task._replace(ttl=task.ttl+1)
+                    self.runner.que_failed.put(task)
             else:
                 self.runner.logger.info('task completed: {}'.format(id_))
+                self.runner.on_task_finish(Status.SUCCEED, task)
                 self.runner.que_completed.put(task)
                 self.runner.finished_tasks.inc()
             self.runner.que_todo.task_done()
@@ -113,8 +121,14 @@ def get_logger():
 class Runner:
 
     def __init__(self, n_max_gpus, n_multiplex, n_max_retry=3,
+                 on_task_finish=None,
                  log_level=logging.INFO):
         self.max_ttl = n_max_retry
+        if on_task_finish is None:
+            self.on_task_finish = lambda *args, **kw: None
+        else:
+            self.on_task_finish = on_task_finish
+
         self.finished_tasks = utils.AtomicCounter()
         self.que_todo = queue.Queue()
         self.que_failed = queue.Queue()
@@ -148,13 +162,15 @@ class Runner:
             time.sleep(2)
 
 
-def _list_tasks(root_cmd, spec_list, work_dir, log_dir, post_cmd, group_id):
-    if spec_list == []:
+def _list_tasks(root_cmd, current_opt, remaining_opts, work_dir, log_dir, post_cmd, group_id):
+    if remaining_opts == []:
         return [Task(
             cmd=root_cmd + ' -dir={}'.format(log_dir), 
+            option_dict=current_opt,
             work_dir=work_dir, log_dir=log_dir, 
             post_cmd=post_cmd, group_id=group_id, ttl=0)]
-    param, values = spec_list[0]
+
+    param, values = remaining_opts[0]
     if type(param) == str:
         param = [param]
     else:
@@ -187,11 +203,13 @@ def _list_tasks(root_cmd, spec_list, work_dir, log_dir, post_cmd, group_id):
             new_log_dir = log_dir
         # Arg string
         new_args = ''
+        new_opt = current_opt.copy()
         for p_, v_ in zip(param, cval):
             new_args += ' -{} {}'.format(p_, v_)
+            new_opt[p_] = v_
         ret += _list_tasks(
-                root_cmd + new_args,
-                spec_list[1:], work_dir, new_log_dir, 
+                root_cmd + new_args, new_opt,
+                remaining_opts[1:], work_dir, new_log_dir, 
                 post_cmd, group_id)
     return ret
 
@@ -206,5 +224,5 @@ def list_tasks(root_cmd, spec_list, work_dir, log_dir,
         spec_list = list(spec_list.items())
     root_cmd += ' -production'    
     return _list_tasks(
-            root_cmd, spec_list, work_dir, log_dir, post_cmd, group_id)
+            root_cmd, {}, spec_list, work_dir, log_dir, post_cmd, group_id)
 
