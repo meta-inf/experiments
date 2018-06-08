@@ -165,7 +165,7 @@ def get_devices(n_gpus):
 
 
 def safe_path_str(raw):
-    return re.sub('[^\w\-_\. ]', '_', raw)
+    return re.sub('[^\w\-_\.]', '_', raw)
 
 
 def task_id(task):
