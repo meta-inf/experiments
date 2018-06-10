@@ -383,7 +383,11 @@ def embed(**kwargs):
     frame = sys._getframe(1)
     shell = InteractiveShellEmbed.instance(_init_location_id='%s:%s' % (
         frame.f_code.co_filename, frame.f_lineno), **kwargs)
-    shell(header=header, stack_depth=3, compile_flags=compile_flags,
+    if 'stack_depth' in kw:
+        stack_depth = kw['stack_depth'] + 3
+    else:
+        stack_depth = 3
+    shell(header=header, stack_depth=stack_depth, compile_flags=compile_flags,
           _call_location_id='%s:%s' % (frame.f_code.co_filename, frame.f_lineno))
     InteractiveShellEmbed.clear_instance()
     #restore previous instance

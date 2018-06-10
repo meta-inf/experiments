@@ -6,10 +6,13 @@ from experiments import ipy_embed
 
 class RealSupervisor():
 
-    def __init__(self, logdir, save_model_secs=60, global_step=None, **kw):
+    def __init__(self, logdir, save_model_secs=60, save_summaries_secs=120,
+                 global_step=None):
         self.sv_ = tf.train.Supervisor(
             logdir=logdir, summary_op=None, 
-            global_step=global_step, save_model_secs=save_model_secs)
+            global_step=global_step,
+            save_model_secs=save_model_secs,
+            save_summaries_secs=save_summaries_secs)
         
     def __enter__(self):
         tf_config = tf.ConfigProto(allow_soft_placement=True)
@@ -34,8 +37,8 @@ class RealSupervisor():
 
 class DebugSupervisor():
 
-    def __init__(self, **kw):
-        pass
+    def __init__(self, extra_stack_depth=0, **kw):
+        self.stack_depth = extra_stack_depth
 
     def __enter__(self):
         tf_config = tf.ConfigProto(allow_soft_placement=True)
@@ -48,7 +51,7 @@ class DebugSupervisor():
         if exc_type is None:
             return
         sys.stderr.write("{}\n{}\n{}\n".format(exc_type, exc_value, traceback))
-        ipy_embed.embed()
+        ipy_embed.embed(stack_depth=self.stack_depth)
 
     def log(self, **kw):
         if '_every' in kw and kw['_epoch'] % kw['_every'] != 0:
