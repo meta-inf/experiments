@@ -12,7 +12,7 @@ from enum import Enum
 from experiments.master import utils
 
 
-Task = namedtuple('Task', 'cmd option_dict work_dir log_dir post_cmd group_id ttl')
+Task = namedtuple('Task', 'cmd option_dict work_dir log_dir post_cmd group_id ttl max_cpu_time post_kill_cmd')
 Task.__doc__ = """\
 A task to run.
 :param str cmd: command to run, preferrably excluding output redirection
@@ -32,7 +32,13 @@ def run_task(t: Task):
         ferr = open(os.path.join(t.log_dir, 'stderr'), 'w')
     proc = subprocess.Popen(
         t.cmd, stdout=fout, stderr=ferr, cwd=t.work_dir, shell=True)
-    proc.wait()
+    try:
+        proc.communicate(timeout=t.max_cpu_time)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        if len(t.post_kill_cmd.strip()) > 0:
+            time.sleep(0.5)
+            os.system(t.post_kill_cmd)
     fout.close(); ferr.close()
     return proc.returncode
 
@@ -162,13 +168,14 @@ class Runner:
             time.sleep(2)
 
 
-def _list_tasks(root_cmd, current_opt, remaining_opts, work_dir, log_dir, post_cmd, group_id):
+def _list_tasks(root_cmd, current_opt, remaining_opts, log_dir, task_params):
     if remaining_opts == []:
-        return [Task(
-            cmd=root_cmd + ' -dir={}'.format(log_dir), 
-            option_dict=current_opt,
-            work_dir=work_dir, log_dir=log_dir, 
-            post_cmd=post_cmd, group_id=group_id, ttl=0)]
+        task_params = task_params.copy()
+        task_params['cmd'] = root_cmd + ' -dir={}'.format(log_dir)
+        task_params['option_dict'] = current_opt
+        task_params['log_dir'] = log_dir
+        task_params['ttl'] = 0
+        return [Task(**task_params)]
 
     param, values = remaining_opts[0]
     if type(param) == str:
@@ -208,21 +215,22 @@ def _list_tasks(root_cmd, current_opt, remaining_opts, work_dir, log_dir, post_c
             new_args += ' -{} {}'.format(p_, v_)
             new_opt[p_] = v_
         ret += _list_tasks(
-                root_cmd + new_args, new_opt,
-                remaining_opts[1:], work_dir, new_log_dir, 
-                post_cmd, group_id)
+            root_cmd + new_args, new_opt, remaining_opts[1:], new_log_dir, task_params)
     return ret
 
 
 def list_tasks(root_cmd, spec_list, work_dir, log_dir,
-        post_cmd=None,
-        group_id=None):
+               post_cmd=None, group_id=None, max_cpu_time=None,
+               post_kill_cmd=None):
     '''
     Helper function to generate task list
     '''
     if type(spec_list) == dict:
         spec_list = list(spec_list.items())
     root_cmd += ' -production'    
+    lc = locals()
+    task_params = dict([(k, lc[k]) for k in [
+        'work_dir', 'post_cmd', 'group_id', 'max_cpu_time', 'post_kill_cmd']])
     return _list_tasks(
-            root_cmd, {}, spec_list, work_dir, log_dir, post_cmd, group_id)
+            root_cmd, {}, spec_list, log_dir, task_params)
 

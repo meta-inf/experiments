@@ -21,6 +21,7 @@ parser = utils.parser('script_name')
 parser.add_argument('-x', default=0.5, type=float)
 parser.add_argument('-x1', default=0.5, type=float)
 parser.add_argument('-y', default='bla', type=str)
+parser.add_argument('-sleep_long', default=0, type=int)
 
 
 if __name__ == '__main__':
@@ -35,7 +36,9 @@ if __name__ == '__main__':
     # Proceed to your experiment
     if args.x < 0:
         raise Exception('Hey! Don\'t do that!')
-    time_ = 0.5 / (1 + np.exp(-args.x))
+    if args.sleep_long != 0:
+        time.sleep(100)
+    time_ = 0.1 / (1 + np.exp(-args.x))
     time.sleep(time_)
     print(time_)
     print('err: ', time_, file=sys.stderr)
