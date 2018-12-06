@@ -24,14 +24,14 @@ def on_task_finish(status, task, code=-1):
     # Hook for gathering results. Check task.log_dir if you wish. Here we do a sanity check
     assert code != runner.Status.LAUNCH_FAILED
     assert (status == runner.Status.CRASHED) == (
-        task.option_dict['x'] < 0 or task.option_dict['sleep_long'] == 1)
+        task.option_dict['x'] < 0 or task.option_dict['sleep_long'] is True)
     ctr[status] += 1
 
 slave_working_dir = os.path.dirname(os.path.abspath(__file__))
 param_specs = {
     ('x', 'x1'): [0.5, 0.6, -0.3],  # x and x1 will have same value
     'y': ['foo', 'bar!'],
-    'sleep_long': [0, 1]
+    'sleep_long': runner.BooleanOpt()
 }
 
 log_dir = '/tmp/slave_logs/'

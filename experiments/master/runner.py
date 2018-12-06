@@ -49,6 +49,10 @@ class Status:
     LAUNCH_FAILED = -1000
 
 
+class BooleanOpt:
+    pass
+
+
 class RunnerThread(threading.Thread):
 
     def __init__(self, env_str, runner):
@@ -185,37 +189,49 @@ def _list_tasks(root_cmd, current_opt, remaining_opts, log_dir, task_params):
         param = list(param)
     ret = []
     used_names = set()
-    for cval in values:
-        # current spec: 'param[i]=cval[i]' for i in len(param)
-        # when cval is atomic, it means all param in this item share the same 
-        # value
-        if type(cval) != list:
-            cval = [cval] * len(param)
-        else:
-            assert len(cval) == len(param)
-        # Rename the logdir: add -param[i]_cval[i] to the suffix
-        if len(values) > 1:
-            new_name = '-'.join(
-                [utils.safe_path_str('{}_{}'.format(p_[:2], v_))
-                 for p_, v_ in zip(param, cval)]
-            )
-            if new_name in used_names:
-                new_name += '_'; i = 0
-                while new_name + str(i) in used_names:
-                    i += 1
-                new_name = new_name + str(i)
-            used_names.add(new_name)
-            new_log_dir = log_dir + '_' + new_name
-        else:
-            new_log_dir = log_dir
-        # Arg string
-        new_args = ''
-        new_opt = current_opt.copy()
-        for p_, v_ in zip(param, cval):
-            new_args += ' -{} {}'.format(p_, v_)
-            new_opt[p_] = v_
-        ret += _list_tasks(
-            root_cmd + new_args, new_opt, remaining_opts[1:], new_log_dir, task_params)
+
+    if isinstance(values, BooleanOpt):
+        for val in [True, False]:
+            new_args = ''
+            new_opt = current_opt.copy()
+            new_logdir = log_dir + '_' + (param[0] if val else '')
+            for p in param:
+                new_opt[p] = val
+                if val:
+                    new_args += ' -' + p
+            ret += _list_tasks(root_cmd+new_args, new_opt, remaining_opts[1:], new_logdir, task_params)
+    else:
+        for cval in values:
+            # current spec: 'param[i]=cval[i]' for i in len(param)
+            # when cval is atomic, it means all param in this item share the same 
+            # value
+            if type(cval) != list:
+                cval = [cval] * len(param)
+            else:
+                assert len(cval) == len(param)
+            # Rename the logdir: add -param[i]_cval[i] to the suffix
+            if len(values) > 1:
+                new_name = '-'.join(
+                    [utils.safe_path_str('{}_{}'.format(p_[:2], v_))
+                     for p_, v_ in zip(param, cval)]
+                )
+                if new_name in used_names:
+                    new_name += '_'; i = 0
+                    while new_name + str(i) in used_names:
+                        i += 1
+                    new_name = new_name + str(i)
+                used_names.add(new_name)
+                new_log_dir = log_dir + '_' + new_name
+            else:
+                new_log_dir = log_dir
+            # Arg string
+            new_args = ''
+            new_opt = current_opt.copy()
+            for p_, v_ in zip(param, cval):
+                new_args += ' -{} {}'.format(p_, v_)
+                new_opt[p_] = v_
+            ret += _list_tasks(
+                root_cmd + new_args, new_opt, remaining_opts[1:], new_log_dir, task_params)
     return ret
 
 
