@@ -7,12 +7,22 @@ import subprocess
 import inspect
 
 
+_log_dir = None
+
+
+def _get_timestr():
+    import datetime
+    dt = datetime.datetime.now()
+    return '{}-{}-{}-{}'.format(dt.month, dt.day, dt.hour, dt.minute)
+
+
 def parser(file_name):
     '''
     Add arguments needed by the framework
     '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('-dir', default='/tmp/{}/last'.format(file_name), type=str)
+    default_path = '/tmp/{}/last_{}'.format(file_name, _get_timestr())
+    parser.add_argument('-dir', default=default_path, type=str)
     parser.add_argument('-resume', dest='resume', action='store_true')
     parser.set_defaults(resume=False)
     parser.add_argument('-production', dest='production', action='store_true')
@@ -59,6 +69,10 @@ def preflight(args, data_dump=None, create_logdir=True):
     else:
         # They must
         assert os.path.exists(args.dir)
+
+    if create_logdir:
+        global _log_dir
+        _log_dir = args.dir
 
     # Dump hyperparameters and other stuff
     with open(os.path.join(args.dir, 'hps.txt'), 'w') as fout:

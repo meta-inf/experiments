@@ -4,6 +4,9 @@ import tensorflow as tf
 from experiments import ipy_embed
 
 
+__all__ = ['RealSupervisor', 'DebugSupervisor', 'create_sv']
+
+
 class RealSupervisor():
 
     def __init__(self, logdir, save_model_secs=60, save_summaries_secs=120,
@@ -60,7 +63,7 @@ class DebugSupervisor():
         print("Epoch {}: {}".format(kw['_epoch'], ', '.join(log_list)))
 
 
-def create(args, **kw):
+def create_sv(args, **kw):
     if args.production:
         return RealSupervisor(args.dir, **kw)
     return DebugSupervisor(**kw)
