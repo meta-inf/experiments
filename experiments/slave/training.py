@@ -18,6 +18,9 @@ class Symbol:
   def gather_fn(self, lst):
     raise NotImplemented()
 
+  def log_to_stdout(self):
+    return False
+
 
 class Average(Symbol):
   def __init__(self, key, sym):
@@ -28,11 +31,15 @@ class Average(Symbol):
 
 
 class ScalarAverage(Average):
-  def __init__(self, key, sym):
+  def __init__(self, key, sym, log_to_stdout=True):
     super(ScalarAverage, self).__init__(key, sym)
+    self._log_to_stdout = log_to_stdout
 
   def gather_fn(self, lst):
     return np.mean(np.array(lst))
+
+  def log_to_stdout(self):
+    return self._log_to_stdout
 
 
 class Op(Symbol):
@@ -69,7 +76,7 @@ def traverse_ds(symbols, ds_iter, sess, desc=None, callback=None):
       if callback is not None:
         callback(**dict((s.key, v) for s, v in zip(symbols, values)))
       per_iter_stat = dict(
-        (s.key, np.mean(accu[s.key])) for s in symbols if isinstance(s, ScalarAverage))
+        (s.key, np.mean(accu[s.key])) for s in symbols if s.log_to_stdout())
       tr.set_postfix(**per_iter_stat)
 
   ret = {}
