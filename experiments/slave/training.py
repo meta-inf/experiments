@@ -74,7 +74,7 @@ def traverse_ds(symbols, ds_iter, sess, desc=None, callback=None):
       for s, v in zip(symbols, values):
         accu[s.key].append(v)
       if callback is not None:
-        callback(**dict((s.key, v) for s, v in zip(symbols, values)))
+        callback(sess, j, **dict((s.key, v) for s, v in zip(symbols, values)))
       per_iter_stat = dict(
         (s.key, np.mean(accu[s.key])) for s in symbols if s.log_to_stdout())
       tr.set_postfix(**per_iter_stat)
