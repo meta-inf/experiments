@@ -74,7 +74,10 @@ def traverse_ds(symbols, ds_iter, sess, desc=None, callback=None):
       for s, v in zip(symbols, values):
         accu[s.key].append(v)
       if callback is not None:
-        callback(sess, j, **dict((s.key, v) for s, v in zip(symbols, values)))
+        cb_kw = dict((s.key, v) for s, v in zip(symbols, values))
+        cb_kw['__locals'] = locals()
+        cb_kw['__fd'] = feed_dict
+        callback(sess, j, **cb_kw)
       per_iter_stat = dict(
         (s.key, np.mean(accu[s.key])) for s in symbols if s.log_to_stdout())
       tr.set_postfix(**per_iter_stat)
