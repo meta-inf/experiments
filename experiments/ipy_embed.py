@@ -383,8 +383,8 @@ def embed(**kwargs):
     frame = sys._getframe(1)
     shell = InteractiveShellEmbed.instance(_init_location_id='%s:%s' % (
         frame.f_code.co_filename, frame.f_lineno), **kwargs)
-    if 'stack_depth' in kw:
-        stack_depth = kw['stack_depth'] + 3
+    if 'stack_depth' in kwargs:
+        stack_depth = kwargs['stack_depth'] + 3
     else:
         stack_depth = 3
     shell(header=header, stack_depth=stack_depth, compile_flags=compile_flags,
