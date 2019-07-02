@@ -22,6 +22,7 @@ parser.add_argument('-x', default=0.5, type=float)
 parser.add_argument('-x1', default=0.5, type=float)
 parser.add_argument('-y', default='bla', type=str)
 parser.add_argument('-sleep_long', action='store_true')
+parser.add_argument('-no_sleep_long', action='store_false', dest='sleep_long')
 parser.set_defaults(sleep_long=False)
 
 

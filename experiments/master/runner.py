@@ -50,7 +50,9 @@ class Status:
 
 
 class BooleanOpt:
-    pass
+    def __init__(self, true_first=True, no_for_false=False):
+        self.true_first = true_first
+        self.no_for_false = no_for_false
 
 
 class RunnerThread(threading.Thread):
@@ -107,7 +109,9 @@ class RunnerThread(threading.Thread):
                     task = task._replace(ttl=task.ttl+1)
                     self.runner.que_failed.put(task)
             else:
-                self.runner.logger.info('task completed: {}'.format(id_))
+                self.runner.logger.info('task completed: {} (Fi {} / Cr {} / Rem {})'.format(
+                    id_, self.runner.que_completed.qsize(), self.runner.que_failed.qsize(),
+                    self.runner.que_todo.qsize()))
                 self.runner.on_task_finish(Status.SUCCEED, task)
                 self.runner.que_completed.put(task)
                 self.runner.finished_tasks.inc()
@@ -191,7 +195,8 @@ def _list_tasks(root_cmd, current_opt, remaining_opts, log_dir, task_params):
     used_names = set()
 
     if isinstance(values, BooleanOpt):
-        for val in [True, False]:
+        vals = [True, False] if values.true_first else [False, True]
+        for val in vals:
             new_args = ''
             new_opt = current_opt.copy()
             new_logdir = log_dir + '_' + (param[0] if val else '')
@@ -199,6 +204,8 @@ def _list_tasks(root_cmd, current_opt, remaining_opts, log_dir, task_params):
                 new_opt[p] = val
                 if val:
                     new_args += ' -' + p
+                elif values.no_for_false:
+                    new_args += ' -no_' + p
             ret += _list_tasks(root_cmd+new_args, new_opt, remaining_opts[1:], new_logdir, task_params)
     else:
         for cval in values:

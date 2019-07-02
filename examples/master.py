@@ -31,7 +31,7 @@ slave_working_dir = os.path.dirname(os.path.abspath(__file__))
 param_specs = {
     ('x', 'x1'): [0.5, 0.6, -0.3],  # x and x1 will have same value
     'y': ['foo', 'bar!'],
-    'sleep_long': runner.BooleanOpt()
+    'sleep_long': runner.BooleanOpt(true_first=False, no_for_false=True)
 }
 
 log_dir = '/tmp/slave_logs/'
