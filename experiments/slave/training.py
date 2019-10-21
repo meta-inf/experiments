@@ -97,7 +97,7 @@ _log_context = None
 class LogContext:
 
   def __init__(self, n_epochs, global_step=None, tfsummary=False, logdir=None,
-               max_queue=10, flush_secs=30):
+               max_queue=10, flush_secs=30, n_ep_start=0):
     self._n_epochs = n_epochs
     self._global_step = global_step
     self._tfsummary = tfsummary
@@ -106,6 +106,7 @@ class LogContext:
     self._logdir = logdir
     self._max_queue = max_queue
     self._flush_secs = flush_secs
+    self._n_ep_start = n_ep_start
 
   def __enter__(self):
     global _log_context
@@ -134,6 +135,12 @@ class LogContext:
       if self._tfsummary:
         self._tf_writer.flush()
 
+  def _get_global_step(self):
+    if self._global_step is not None:
+      return self._global_step.eval()
+    else:
+      return self._cur_ep + self._n_ep_start
+
   def log_scalars(self, val_dict, keys):
     vd = {}
     for k in keys:
@@ -142,13 +149,13 @@ class LogContext:
     self._trange.set_postfix(**vd)
 
     if self._tfsummary:
-      gs = self._global_step.eval() if self._global_step is not None else self._cur_ep
+      gs = self._get_global_step()
       for k in keys:
         s = create_scalar_summary(k, vd[k])
         self._tf_writer.add_summary(s, gs)
 
   def log_image(self, key, image):
     if self._tfsummary:
-      gs = self._global_step.eval() if self._global_step is not None else self._cur_ep
+      gs = self._get_global_step()
       s = create_image_summary(key, image_to_nhwc(image))
       self._tf_writer.add_summary(s, gs)
