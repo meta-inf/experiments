@@ -123,7 +123,7 @@ class LogContext:
     return self
 
   def __exit__(self, *args):
-    self._tq_obj.__exit__(args)
+    self._tq_obj.__exit__(*args)
     global _log_context
     _log_context = None
     if self._tfsummary:
@@ -141,11 +141,16 @@ class LogContext:
     else:
       return self._cur_ep + self._n_ep_start
 
-  def log_scalars(self, val_dict, keys):
+  def log_scalars(self, val_dict, keys=None):
+    if keys is None:
+      keys = list(val_dict)
     vd = {}
     for k in keys:
       vd[k] = val_dict[k]
-      assert len(np.shape(vd[k])) == 0, "{} must be scalar ({})".format(k, np.shape(vd[k]))
+      try:
+        vd[k] = float(vd[k])
+      except ValueError:
+        raise ValueError("{} must be scalar ({})".format(k, np.shape(vd[k])))
     self._trange.set_postfix(**vd)
 
     if self._tfsummary:
