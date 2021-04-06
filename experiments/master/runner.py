@@ -50,9 +50,17 @@ class Status:
 
 
 class BooleanOpt:
-    def __init__(self, true_first=True, no_for_false=False):
+    def __init__(self, vals=None, true_first=True, no_for_false=False):
+        self.val_list = vals
         self.true_first = true_first
         self.no_for_false = no_for_false
+
+    def get_value_list(self):
+        if self.val_list is not None:
+            return self.val_list
+        if self.true_first:
+            return [True, False]
+        return [False, True]
 
 
 class RunnerThread(threading.Thread):
@@ -195,7 +203,7 @@ def _list_tasks(root_cmd, current_opt, remaining_opts, log_dir, task_params):
     used_names = set()
 
     if isinstance(values, BooleanOpt):
-        vals = [True, False] if values.true_first else [False, True]
+        vals = values.get_value_list()
         for val in vals:
             new_args = ''
             new_opt = current_opt.copy()
