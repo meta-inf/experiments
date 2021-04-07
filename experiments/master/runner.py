@@ -184,6 +184,15 @@ class Runner:
             time.sleep(2)
 
 
+def format_bool_arg(k, v, no_for_false=True):
+    if v:
+        return '-' + k
+    elif no_for_false:
+        return '-no_' + k
+    else:
+        return ''
+
+
 def _list_tasks(root_cmd, current_opt, remaining_opts, log_dir, task_params):
     if remaining_opts == []:
         task_params = task_params.copy()
@@ -210,10 +219,7 @@ def _list_tasks(root_cmd, current_opt, remaining_opts, log_dir, task_params):
             new_logdir = log_dir + '_' + (param[0] if val else '')
             for p in param:
                 new_opt[p] = val
-                if val:
-                    new_args += ' -' + p
-                elif values.no_for_false:
-                    new_args += ' -no_' + p
+                new_args += ' ' + format_bool_arg(p, val)
             ret += _list_tasks(root_cmd+new_args, new_opt, remaining_opts[1:], new_logdir, task_params)
     else:
         for cval in values:
@@ -243,7 +249,10 @@ def _list_tasks(root_cmd, current_opt, remaining_opts, log_dir, task_params):
             new_args = ''
             new_opt = current_opt.copy()
             for p_, v_ in zip(param, cval):
-                new_args += ' -{} {}'.format(p_, v_)
+                if isinstance(v_, bool):
+                    new_args += ' ' + format_bool_arg(p_, v_)
+                else:
+                    new_args += ' -{} {}'.format(p_, v_)
                 new_opt[p_] = v_
             ret += _list_tasks(
                 root_cmd + new_args, new_opt, remaining_opts[1:], new_log_dir, task_params)
