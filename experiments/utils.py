@@ -16,11 +16,7 @@ def _get_timestr():
     return '{}-{}-{}-{}'.format(dt.month, dt.day, dt.hour, dt.minute)
 
 
-def parser(file_name):
-    '''
-    Add arguments needed by the framework
-    '''
-    parser = argparse.ArgumentParser()
+def _with_default_args(parser, file_name):
     default_path = '/tmp/{}/last_{}'.format(file_name, _get_timestr())
     parser.add_argument('-dir', default=default_path, type=str)
     parser.add_argument('-resume', dest='resume', action='store_true')
@@ -28,6 +24,21 @@ def parser(file_name):
     parser.add_argument('-production', dest='production', action='store_true')
     parser.set_defaults(production=False)
     return parser
+
+
+def parser(file_name) -> argparse.ArgumentParser:
+    '''
+    Add arguments needed by the framework
+    '''
+    return _with_default_args(argparse.ArgumentParser(), file_name)
+
+
+try:
+    import simple_parsing
+    def s_parser(file_name) -> simple_parsing.ArgumentParser:
+        return _with_default_args(simple_parsing.ArgumentParser(), file_name)
+except:
+    pass
 
 
 def source_dir():
