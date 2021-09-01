@@ -5,6 +5,8 @@ import shutil
 import argparse
 import subprocess
 import inspect
+import dataclasses
+import json
 
 
 _log_dir = None
@@ -87,9 +89,12 @@ def preflight(args, data_dump=None, create_logdir=True):
 
     # Dump hyperparameters and other stuff
     with open(os.path.join(args.dir, 'hps.txt'), 'w') as fout:
-        import json
-        dct = args.__dict__
+        dct = args.__dict__.copy()
         dct['commit_hash'] = commit_hash
+        for k in dct:
+            v = dct[k]
+            if dataclasses.is_dataclass(type(v)):
+                dct[k] = dataclasses.asdict(v)  # works recursively
         print(json.dumps(dct), file=fout)
 
     with open(os.path.join(args.dir, 'repo-diff.txt'), 'w') as fout:
