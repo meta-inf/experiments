@@ -37,8 +37,11 @@ def parser(file_name) -> argparse.ArgumentParser:
 
 try:
     import simple_parsing
+    from simple_parsing import ConflictResolution
     def s_parser(file_name) -> simple_parsing.ArgumentParser:
-        return _with_default_args(simple_parsing.ArgumentParser(), file_name)
+        return _with_default_args(
+            simple_parsing.ArgumentParser(conflict_resolution=ConflictResolution.EXPLICIT),
+            file_name)
 except:
     pass
 
