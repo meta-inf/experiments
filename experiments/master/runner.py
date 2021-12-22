@@ -184,16 +184,16 @@ class Runner:
             time.sleep(2)
 
 
-def format_bool_arg(k, v, no_for_false=True):
+def format_bool_arg(k, v, arg_prefix, no_for_false=True):
     if v:
-        return '-' + k
+        return arg_prefix + k
     elif no_for_false:
-        return '-no_' + k
+        return arg_prefix + 'no_' + k
     else:
         return ''
 
 
-def _list_tasks(root_cmd, current_opt, remaining_opts, log_dir, task_params):
+def _list_tasks(root_cmd, current_opt, remaining_opts, log_dir, task_params, arg_prefix):
     if remaining_opts == []:
         task_params = task_params.copy()
         task_params['cmd'] = root_cmd + ' -dir={}'.format(log_dir)
@@ -250,27 +250,28 @@ def _list_tasks(root_cmd, current_opt, remaining_opts, log_dir, task_params):
             new_opt = current_opt.copy()
             for p_, v_ in zip(param, cval):
                 if isinstance(v_, bool):
-                    new_args += ' ' + format_bool_arg(p_, v_)
+                    new_args += ' ' + format_bool_arg(p_, v_, arg_prefix)
                 else:
-                    new_args += ' -{} {}'.format(p_, v_)
+                    new_args += ' {}{} {}'.format(arg_prefix, p_, v_)
                 new_opt[p_] = v_
             ret += _list_tasks(
-                root_cmd + new_args, new_opt, remaining_opts[1:], new_log_dir, task_params)
+                root_cmd + new_args, new_opt, remaining_opts[1:], new_log_dir, task_params,
+                arg_prefix)
     return ret
 
 
 def list_tasks(root_cmd, spec_list, work_dir, log_dir,
                post_cmd=None, group_id=None, max_cpu_time=None,
-               post_kill_cmd=None):
+               post_kill_cmd=None, arg_prefix='-'):
     '''
     Helper function to generate task list
     '''
     if type(spec_list) == dict:
         spec_list = list(spec_list.items())
-    root_cmd += ' -production'    
+    root_cmd += ' -production'
     lc = locals()
     task_params = dict([(k, lc[k]) for k in [
         'work_dir', 'post_cmd', 'group_id', 'max_cpu_time', 'post_kill_cmd']])
     return _list_tasks(
-            root_cmd, {}, spec_list, log_dir, task_params)
+            root_cmd, {}, spec_list, log_dir, task_params, arg_prefix)
 
